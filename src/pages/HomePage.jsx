@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import SEO from "../components/SEO";
 
 // type "all" | "city" | "commune" | "sep" (séparateur visuel)
 const LOCALISATIONS = [
@@ -204,6 +205,11 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Offres d'emploi en Côte d'Ivoire"
+        description={`${totalCount ? `${totalCount}+ ` : ""}offres d'emploi en Côte d'Ivoire. CDI, CDD, Stage, Freelance à Abidjan, Bouaké, Yamoussoukro et partout en Côte d'Ivoire.`}
+        url="https://jobci.vercel.app"
+      />
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <header className="bg-navy-900">

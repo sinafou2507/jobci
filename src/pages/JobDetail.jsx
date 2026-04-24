@@ -5,6 +5,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useFavorites } from "../hooks/useFavorites";
 import ApplyModal from "../components/ApplyModal";
 import GuestFavoriteModal from "../components/GuestFavoriteModal";
+import SEO from "../components/SEO";
 
 const CONTRACT_COLORS = {
   CDI:        "bg-emerald-100 text-emerald-800",
@@ -86,9 +87,60 @@ export default function JobDetail() {
   const contractCls = CONTRACT_COLORS[job.contract_type] ?? "bg-gray-100 text-gray-700";
   const sourceSite = getSourceSite(job.source_url);
   const applyTarget = job.source_url || job.apply_url || null;
+  const lieu = [job.commune, job.city].filter(Boolean).join(", ") || "Côte d'Ivoire";
+
+  const seoTitle = `${job.title}${job.company_name ? ` — ${job.company_name}` : ""} · ${lieu}`;
+  const seoDesc  = job.description
+    ? job.description.slice(0, 155).replace(/\s+/g, " ").trim() + "…"
+    : `${job.contract_type ?? "Offre"} · ${lieu}${job.salary_min ? ` · ${job.salary_min.toLocaleString("fr-FR")} FCFA` : ""} — Postulez sur JobCI`;
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: job.description ?? seoDesc,
+    datePosted: new Date(job.created_at).toISOString().split("T")[0],
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company_name ?? "Entreprise",
+      ...(job.company_logo ? { logo: job.company_logo } : {}),
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: job.commune ?? job.city ?? "Abidjan",
+        addressCountry: "CI",
+      },
+    },
+    employmentType: job.contract_type === "CDI" ? "FULL_TIME"
+      : job.contract_type === "CDD"   ? "TEMPORARY"
+      : job.contract_type === "Stage" ? "INTERN"
+      : job.contract_type === "Freelance" ? "CONTRACTOR"
+      : "OTHER",
+    ...(job.salary_min ? {
+      baseSalary: {
+        "@type": "MonetaryAmount",
+        currency: "XOF",
+        value: {
+          "@type": "QuantitativeValue",
+          minValue: job.salary_min,
+          ...(job.salary_max ? { maxValue: job.salary_max } : {}),
+          unitText: "MONTH",
+        },
+      },
+    } : {}),
+  };
 
   return (
     <>
+      <SEO
+        title={seoTitle}
+        description={seoDesc}
+        url={`https://jobci.vercel.app/offres/${job.id}`}
+        image={job.company_logo ?? undefined}
+        jsonLd={jsonLd}
+      />
       <div className="max-w-3xl mx-auto px-4 py-10">
         <Link
           to="/"
