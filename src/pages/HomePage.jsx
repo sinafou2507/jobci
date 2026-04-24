@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { Link } from "react-router-dom";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from "../lib/supabase";
 
 const COMMUNES = [
   "Toutes", "Plateau", "Cocody", "Yopougon", "Abobo",
@@ -18,7 +13,7 @@ const CONTRATS = ["Tous", "CDI", "CDD", "Stage", "Freelance", "Alternance"];
 const SECTEURS = [
   "Tous", "Informatique", "Finance & Banque", "BTP & Immobilier",
   "Télécommunications", "Marketing", "Santé", "Éducation",
-  "Commerce & Distribution", "Transport & Logistique",
+  "Commerce & Distribution", "Transport & Logistique", "Autre",
 ];
 
 const CONTRACT_COLORS = {
@@ -55,8 +50,8 @@ function JobCard({ job }) {
     <Link
       to={`/offres/${job.id}`}
       className={`group block bg-white border border-gray-100 border-l-4 ${accent}
-                 rounded-2xl p-5 hover:shadow-xl hover:shadow-navy-900/8 hover:-translate-y-0.5
-                 transition-all duration-200`}
+                 rounded-2xl p-5 hover:shadow-xl hover:shadow-navy-900/10 hover:-translate-y-1
+                 hover:border-gray-200 transition-all duration-250`}
     >
       <div className="flex items-start gap-3">
         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-navy-50 to-navy-100
@@ -185,9 +180,9 @@ export default function HomePage() {
       <header className="bg-navy-900">
         <div className="max-w-6xl mx-auto px-4 pt-12 pb-14 md:pt-16 md:pb-16">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20
+          <div className="animate-fade-up inline-flex items-center gap-2 bg-white/10 border border-white/20
                           rounded-full px-3 py-1.5 mb-6">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-dot-pulse" />
             <span className="text-navy-300 text-xs font-medium">
               {totalCount > 0
                 ? `${totalCount.toLocaleString("fr-FR")} offres disponibles`
@@ -195,17 +190,20 @@ export default function HomePage() {
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-bold text-white leading-tight mb-3 max-w-2xl">
-            Trouvez votre <span className="text-orange-400">emploi idéal</span>
+          <h1 className="animate-fade-up text-3xl md:text-5xl font-bold text-white leading-tight mb-3 max-w-2xl"
+              style={{ animationDelay: "80ms" }}>
+            Trouvez votre <span className="hero-highlight">emploi idéal</span>
           </h1>
-          <p className="text-navy-300 text-base md:text-lg mb-8 max-w-lg">
+          <p className="animate-fade-up text-navy-300 text-base md:text-lg mb-8 max-w-lg"
+             style={{ animationDelay: "160ms" }}>
             Toutes les offres d'emploi de Côte d'Ivoire réunies en un seul endroit.
           </p>
 
           {/* Barre de recherche */}
-          <div className="flex flex-col sm:flex-row gap-2 max-w-2xl">
+          <div className="animate-fade-up flex flex-col sm:flex-row gap-2 max-w-2xl"
+               style={{ animationDelay: "240ms" }}>
             <div className="flex-1 relative">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400"
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
               </svg>
@@ -230,7 +228,8 @@ export default function HomePage() {
           </div>
 
           {/* Stats rapides */}
-          <div className="flex flex-wrap gap-6 mt-8">
+          <div className="animate-fade-up flex flex-wrap gap-6 mt-8"
+               style={{ animationDelay: "320ms" }}>
             {[
               { label: "emploi.ci", icon: "🔗" },
               { label: "goafricaonline.com", icon: "🔗" },
@@ -309,14 +308,20 @@ export default function HomePage() {
                 </svg>
                 Secteur
               </h2>
-              <select
-                value={secteur}
-                onChange={e => setSecteur(e.target.value)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs
-                           text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy-400 bg-white"
-              >
-                {SECTEURS.map(s => <option key={s}>{s}</option>)}
-              </select>
+              <div className="space-y-0.5">
+                {SECTEURS.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setSecteur(s)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all
+                      ${secteur === s
+                        ? "bg-navy-900 text-white font-medium shadow-sm"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Reset */}
@@ -372,7 +377,12 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {jobs.map(job => <JobCard key={job.id} job={job} />)}
+                {jobs.map((job, i) => (
+                  <div key={job.id} className="animate-fade-up"
+                       style={{ animationDelay: `${i * 45}ms` }}>
+                    <JobCard job={job} />
+                  </div>
+                ))}
               </div>
             )}
 
