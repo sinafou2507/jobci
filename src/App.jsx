@@ -15,6 +15,7 @@ import RegisterPage from "./pages/RegisterPage";
 import ProfilePage from "./pages/ProfilePage";
 import ContactPage from "./pages/ContactPage";
 import FavoritesPage from "./pages/FavoritesPage";
+import AlertesPage from "./pages/AlertesPage";
 
 export default function App() {
   return (
@@ -57,6 +58,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <FavoritesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/alertes"
+            element={
+              <ProtectedRoute>
+                <AlertesPage />
               </ProtectedRoute>
             }
           />
