@@ -2,10 +2,32 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-const COMMUNES = [
-  "Toutes", "Plateau", "Cocody", "Yopougon", "Abobo",
-  "Adjamé", "Marcory", "Treichville", "Port-Bouët",
-  "Koumassi", "Bingerville",
+// type "all" | "city" | "commune" | "sep" (séparateur visuel)
+const LOCALISATIONS = [
+  { label: "Toutes",                  value: "Toutes",       type: "all" },
+  { label: "Abidjan (toute la ville)",value: "Abidjan",      type: "city" },
+  { label: "Communes d'Abidjan",      value: null,           type: "sep" },
+  { label: "Plateau",                 value: "Plateau",      type: "commune" },
+  { label: "Cocody",                  value: "Cocody",       type: "commune" },
+  { label: "Yopougon",                value: "Yopougon",     type: "commune" },
+  { label: "Abobo",                   value: "Abobo",        type: "commune" },
+  { label: "Adjamé",                  value: "Adjamé",       type: "commune" },
+  { label: "Marcory",                 value: "Marcory",      type: "commune" },
+  { label: "Treichville",             value: "Treichville",  type: "commune" },
+  { label: "Port-Bouët",              value: "Port-Bouët",   type: "commune" },
+  { label: "Koumassi",                value: "Koumassi",     type: "commune" },
+  { label: "Bingerville",             value: "Bingerville",  type: "commune" },
+  { label: "Autres villes CI",        value: null,           type: "sep" },
+  { label: "Bouaké",                  value: "Bouaké",       type: "city" },
+  { label: "Yamoussoukro",            value: "Yamoussoukro", type: "city" },
+  { label: "San-Pédro",               value: "San-Pédro",    type: "city" },
+  { label: "Daloa",                   value: "Daloa",        type: "city" },
+  { label: "Korhogo",                 value: "Korhogo",      type: "city" },
+  { label: "Man",                     value: "Man",          type: "city" },
+  { label: "Gagnoa",                  value: "Gagnoa",       type: "city" },
+  { label: "Aboisso",                 value: "Aboisso",      type: "city" },
+  { label: "Divo",                    value: "Divo",         type: "city" },
+  { label: "Soubré",                  value: "Soubré",       type: "city" },
 ];
 
 const CONTRATS = ["Tous", "CDI", "CDD", "Stage", "Freelance", "Alternance"];
@@ -130,7 +152,7 @@ export default function HomePage() {
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading]       = useState(true);
   const [searchQuery, setSearch]    = useState("");
-  const [commune, setCommune]       = useState("Toutes");
+  const [localisation, setLocalisation] = useState("Toutes");
   const [contrat, setContrat]       = useState("Tous");
   const [secteur, setSecteur]       = useState("Tous");
   const [page, setPage]             = useState(1);
@@ -147,7 +169,11 @@ export default function HomePage() {
         .order("created_at", { ascending: false })
         .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-      if (commune !== "Toutes") query = query.eq("commune", commune);
+      if (localisation !== "Toutes") {
+        const loc = LOCALISATIONS.find(l => l.value === localisation);
+        if (loc?.type === "city")    query = query.eq("city", localisation);
+        if (loc?.type === "commune") query = query.eq("commune", localisation);
+      }
       if (contrat !== "Tous")   query = query.eq("contract_type", contrat);
       if (secteur !== "Tous")   query = query.eq("sector", secteur);
       if (searchQuery.trim()) {
@@ -165,13 +191,13 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, commune, contrat, secteur, page]);
+  }, [searchQuery, localisation, contrat, secteur, page]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, commune, contrat, secteur]);
+  useEffect(() => { setPage(1); }, [searchQuery, localisation, contrat, secteur]);
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const hasFilters = commune !== "Toutes" || contrat !== "Tous" || secteur !== "Tous" || searchQuery;
+  const hasFilters = localisation !== "Toutes" || contrat !== "Tous" || secteur !== "Tous" || searchQuery;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -251,28 +277,35 @@ export default function HomePage() {
           {/* Sidebar filtres */}
           <aside className="lg:w-60 flex-shrink-0 space-y-4">
 
-            {/* Commune */}
+            {/* Localisation */}
             <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
               <h2 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest flex items-center gap-1.5">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
                   <circle cx="12" cy="9" r="2.5" />
                 </svg>
-                Commune
+                Localisation
               </h2>
-              <div className="space-y-0.5">
-                {COMMUNES.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setCommune(c)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all
-                      ${commune === c
-                        ? "bg-navy-900 text-white font-medium shadow-sm"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
-                  >
-                    {c}
-                  </button>
-                ))}
+              <div className="space-y-0.5 max-h-72 overflow-y-auto pr-1">
+                {LOCALISATIONS.map((loc, i) =>
+                  loc.type === "sep" ? (
+                    <p key={i} className="text-[10px] font-bold text-gray-300 uppercase tracking-widest px-3 pt-3 pb-1">
+                      {loc.label}
+                    </p>
+                  ) : (
+                    <button
+                      key={loc.value}
+                      onClick={() => setLocalisation(loc.value)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all
+                        ${localisation === loc.value
+                          ? "bg-navy-900 text-white font-medium shadow-sm"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}
+                        ${loc.type === "commune" ? "pl-5 text-xs" : ""}`}
+                    >
+                      {loc.label}
+                    </button>
+                  )
+                )}
               </div>
             </div>
 
@@ -327,7 +360,7 @@ export default function HomePage() {
             {/* Reset */}
             {hasFilters && (
               <button
-                onClick={() => { setCommune("Toutes"); setContrat("Tous"); setSecteur("Tous"); setSearch(""); }}
+                onClick={() => { setLocalisation("Toutes"); setContrat("Tous"); setSecteur("Tous"); setSearch(""); }}
                 className="w-full flex items-center justify-center gap-1.5 text-xs text-orange-600
                            hover:text-orange-700 font-semibold bg-orange-50 hover:bg-orange-100
                            rounded-xl py-2.5 transition-colors border border-orange-100"
