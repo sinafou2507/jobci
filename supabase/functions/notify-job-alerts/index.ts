@@ -35,71 +35,76 @@ Deno.serve(async (req: Request) => {
   try {
     const payload: WebhookPayload = await req.json();
 
-    // Uniquement les nouvelles offres actives
     if (payload.type !== "INSERT") {
       return ok("not an insert");
     }
 
     const job = payload.record;
-    if (!job?.title) return ok("no title");
+    if (!job?.id || !job?.title) return ok("invalid job record");
 
-    // Client Supabase admin (accès complet, ignore RLS)
+    console.log(`Nouveau job inséré : "${job.title}" (id: ${job.id})`);
+
+    // Client Supabase admin
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // ── 1. Charger toutes les alertes actives ─────────────────────────────────
+    // ── 1. Récupérer les alertes actives et les filtrer selon le job inséré ───
     const { data: alerts, error: alertsErr } = await supabase
       .from("alerts")
       .select("id, user_id, keyword, city, is_active")
       .eq("is_active", true);
 
     if (alertsErr) {
-      console.error("alerts fetch error:", alertsErr.message);
+      console.error("Erreur récupération alerts :", alertsErr.message);
       return new Response("error", { status: 500 });
     }
 
     if (!alerts || alerts.length === 0) {
+      console.log("Aucune alerte active.");
       return ok("no active alerts");
     }
 
-    // ── 2. Filtrer les alertes qui correspondent à l'offre ────────────────────
+    // Filtrage des alertes en fonction du job_id inséré (titre + ville)
     const titleLower   = job.title.toLowerCase();
     const cityLower    = (job.city    ?? "").toLowerCase();
     const communeLower = (job.commune ?? "").toLowerCase();
 
     const matched: Alert[] = (alerts as Alert[]).filter((alert) => {
-      // Mot-clé présent dans le titre ?
-      if (!titleLower.includes(alert.keyword.toLowerCase())) return false;
+      // Le mot-clé de l'alerte doit être présent dans le titre du job
+      const keywordMatch = titleLower.includes(alert.keyword.toLowerCase());
+      if (!keywordMatch) return false;
 
-      // Ville : si l'alerte a une contrainte de ville, vérifier la correspondance
+      // Si l'alerte a une ville, elle doit correspondre au job
       if (alert.city) {
-        const ac = alert.city.toLowerCase();
-        if (!cityLower.includes(ac) && !communeLower.includes(ac) && !ac.includes(cityLower)) {
-          return false;
-        }
+        const alertCity = alert.city.toLowerCase();
+        const cityMatch =
+          cityLower.includes(alertCity) ||
+          communeLower.includes(alertCity) ||
+          alertCity.includes(cityLower);
+        if (!cityMatch) return false;
       }
 
       return true;
     });
 
     if (matched.length === 0) {
-      console.log(`"${job.title}" — aucune alerte correspondante`);
+      console.log(`Aucune alerte ne correspond au job "${job.title}".`);
       return ok("no match");
     }
 
-    console.log(`"${job.title}" — ${matched.length} alerte(s) trouvée(s)`);
+    console.log(`${matched.length} alerte(s) correspondent au job id=${job.id}`);
 
-    // ── 3. Regrouper par user_id ──────────────────────────────────────────────
+    // ── 2. Regrouper par user_id (1 email par utilisateur max) ───────────────
     const byUser = new Map<string, Alert[]>();
     for (const alert of matched) {
       if (!byUser.has(alert.user_id)) byUser.set(alert.user_id, []);
       byUser.get(alert.user_id)!.push(alert);
     }
 
-    // ── 4. Envoyer une notification par utilisateur ───────────────────────────
-    const RESEND_KEY = Deno.env.get("RESEND_API_KEY");
+    // ── 3. Envoyer la notification à chaque utilisateur ───────────────────────
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     let sent = 0;
 
     for (const [userId, userAlerts] of byUser) {
@@ -107,124 +112,138 @@ Deno.serve(async (req: Request) => {
       const email = userData?.user?.email;
       const name  = userData?.user?.user_metadata?.full_name ?? "Candidat";
 
-      if (!email) continue;
+      if (!email) {
+        console.warn(`user_id=${userId} — email introuvable, ignoré`);
+        continue;
+      }
 
       const keywords = userAlerts.map((a) => a.keyword).join(", ");
 
-      if (RESEND_KEY) {
-        const ok = await sendResendEmail(RESEND_KEY, { to: email, name, job, keywords });
-        if (ok) sent++;
+      if (RESEND_API_KEY) {
+        const success = await sendEmail(RESEND_API_KEY, { to: email, name, job, keywords });
+        if (success) sent++;
       } else {
-        // Mode simulation — visible dans les logs Supabase
-        console.log("─".repeat(50));
-        console.log(`[EMAIL SIMULÉ] destinataire : ${email}`);
-        console.log(`Objet  : 🔔 Nouvelle offre correspondant à votre alerte`);
-        console.log(`Titre  : ${job.title}`);
-        console.log(`Lieu   : ${[job.commune, job.city].filter(Boolean).join(", ")}`);
-        console.log(`Mots-clés déclencheurs : ${keywords}`);
-        console.log(`Lien   : https://jobci.vercel.app/offres/${job.id}`);
+        // Simulation — logs visibles dans Supabase Edge Functions → Logs
+        console.log("─".repeat(52));
+        console.log(`[SIMULATION] job_id : ${job.id}`);
+        console.log(`Destinataire : ${email} (${name})`);
+        console.log(`Objet        : 🔔 Nouvelle offre : ${job.title}`);
+        console.log(`Lieu         : ${[job.commune, job.city].filter(Boolean).join(", ")}`);
+        console.log(`Mots-clés    : ${keywords}`);
+        console.log(`URL          : https://jobci.vercel.app/offres/${job.id}`);
         sent++;
       }
     }
 
     return new Response(
-      JSON.stringify({ matched: matched.length, notified: sent }),
+      JSON.stringify({ job_id: job.id, matched: matched.length, notified: sent }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
 
   } catch (err) {
-    console.error("Unhandled error:", err);
+    console.error("Erreur non gérée :", err);
     return new Response("internal error", { status: 500 });
   }
 });
 
 // ── Envoi email via Resend ────────────────────────────────────────────────────
 
-async function sendResendEmail(
+async function sendEmail(
   apiKey: string,
   { to, name, job, keywords }: { to: string; name: string; job: JobRecord; keywords: string },
 ): Promise<boolean> {
-  const jobUrl  = `https://jobci.vercel.app/offres/${job.id}`;
-  const lieu    = [job.commune, job.city].filter(Boolean).join(", ") || "Non précisé";
+  const jobUrl = `https://jobci.vercel.app/offres/${job.id}`;
+  const lieu   = [job.commune, job.city].filter(Boolean).join(", ") || "Non précisé";
   const salaire = job.salary_min
-    ? `${job.salary_min.toLocaleString("fr-FR")}${job.salary_max ? ` – ${job.salary_max.toLocaleString("fr-FR")}` : "+"} FCFA`
+    ? `${job.salary_min.toLocaleString("fr-FR")}${job.salary_max ? ` – ${job.salary_max.toLocaleString("fr-FR")}` : "+"} FCFA/mois`
     : null;
 
   const html = `
 <!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
 <body style="margin:0;padding:0;background:#f9fafb;font-family:Inter,system-ui,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:40px 16px;">
     <tr><td align="center">
-      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+      <table width="560" cellpadding="0" cellspacing="0"
+             style="background:#fff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;max-width:100%;">
 
-        <!-- Header -->
+        <!-- Header navy -->
         <tr>
           <td style="background:#0F2050;padding:24px 32px;">
-            <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td>
-                  <span style="display:inline-block;background:#F97316;color:#fff;font-weight:700;
-                               font-size:18px;padding:8px 14px;border-radius:10px;">J</span>
-                  <span style="color:#fff;font-weight:700;font-size:20px;margin-left:10px;vertical-align:middle;">JobCI</span>
-                </td>
-                <td align="right">
-                  <span style="background:rgba(249,115,22,0.15);color:#fb923c;font-size:12px;
-                               font-weight:600;padding:4px 12px;border-radius:20px;">🔔 Alerte emploi</span>
-                </td>
-              </tr>
-            </table>
+            <table width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td>
+                <span style="display:inline-block;background:#F97316;color:#fff;font-weight:700;
+                             font-size:17px;padding:7px 13px;border-radius:10px;">J</span>
+                <span style="color:#fff;font-size:20px;font-weight:700;
+                             margin-left:10px;vertical-align:middle;">JobCI</span>
+              </td>
+              <td align="right">
+                <span style="background:rgba(249,115,22,0.18);color:#fb923c;font-size:12px;
+                             font-weight:600;padding:4px 12px;border-radius:20px;">🔔 Alerte emploi</span>
+              </td>
+            </tr></table>
           </td>
         </tr>
 
-        <!-- Body -->
+        <!-- Corps -->
         <tr>
           <td style="padding:32px;">
-            <p style="color:#6b7280;font-size:14px;margin:0 0 8px;">Bonjour ${name},</p>
-            <p style="color:#111827;font-size:16px;font-weight:600;margin:0 0 24px;">
-              Une nouvelle offre correspond à votre alerte <strong style="color:#F97316;">${keywords}</strong>
+            <p style="color:#6b7280;font-size:14px;margin:0 0 6px;">Bonjour ${name},</p>
+            <p style="color:#111827;font-size:16px;font-weight:600;margin:0 0 24px;line-height:1.5;">
+              Une nouvelle offre correspond à votre alerte
+              <span style="color:#F97316;">${keywords}</span>
             </p>
 
             <!-- Carte offre -->
             <table width="100%" cellpadding="0" cellspacing="0"
-                   style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:24px;">
-              <tr>
-                <td style="padding:20px;">
-                  <p style="color:#6b7280;font-size:13px;margin:0 0 4px;">${job.company_name ?? ""}</p>
-                  <p style="color:#111827;font-size:18px;font-weight:700;margin:0 0 16px;">${job.title}</p>
-                  <table cellpadding="0" cellspacing="0">
-                    <tr>
-                      <td style="padding-right:16px;">
-                        <span style="color:#6b7280;font-size:12px;">📍 ${lieu}</span>
-                      </td>
-                      ${job.contract_type ? `<td><span style="font-size:12px;background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-weight:600;">${job.contract_type}</span></td>` : ""}
-                    </tr>
-                  </table>
-                  ${salaire ? `<p style="color:#0F2050;font-size:14px;font-weight:600;margin:12px 0 0;">${salaire}/mois</p>` : ""}
-                </td>
-              </tr>
+                   style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:28px;">
+              <tr><td style="padding:20px 24px;">
+                ${job.company_name
+                  ? `<p style="color:#6b7280;font-size:13px;margin:0 0 4px;">${job.company_name}</p>`
+                  : ""}
+                <p style="color:#111827;font-size:19px;font-weight:700;margin:0 0 16px;line-height:1.3;">
+                  ${job.title}
+                </p>
+                <table cellpadding="0" cellspacing="4"><tr>
+                  <td style="padding-right:8px;">
+                    <span style="font-size:12px;color:#6b7280;">📍 ${lieu}</span>
+                  </td>
+                  ${job.contract_type
+                    ? `<td><span style="font-size:12px;background:#d1fae5;color:#065f46;
+                                padding:3px 10px;border-radius:20px;font-weight:600;">
+                                ${job.contract_type}</span></td>`
+                    : ""}
+                </tr></table>
+                ${salaire
+                  ? `<p style="color:#0F2050;font-size:14px;font-weight:700;margin:14px 0 0;">${salaire}</p>`
+                  : ""}
+              </td></tr>
             </table>
 
-            <!-- CTA -->
+            <!-- Bouton CTA -->
             <table width="100%" cellpadding="0" cellspacing="0">
-              <tr>
-                <td align="center">
-                  <a href="${jobUrl}" style="display:inline-block;background:#F97316;color:#fff;
-                             font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;
-                             text-decoration:none;">Voir l'offre →</a>
-                </td>
-              </tr>
+              <tr><td align="center">
+                <a href="${jobUrl}"
+                   style="display:inline-block;background:#F97316;color:#fff;font-weight:700;
+                          font-size:15px;padding:14px 36px;border-radius:12px;text-decoration:none;">
+                  Voir l'offre &rarr;
+                </a>
+              </td></tr>
             </table>
           </td>
         </tr>
 
         <!-- Footer -->
         <tr>
-          <td style="background:#f9fafb;padding:20px 32px;border-top:1px solid #e5e7eb;">
-            <p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">
-              Vous recevez cet email car vous avez une alerte active sur JobCI.<br>
-              <a href="https://jobci.vercel.app/alertes" style="color:#F97316;">Gérer mes alertes</a>
+          <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:18px 32px;">
+            <p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;line-height:1.6;">
+              Vous recevez cet email car vous avez configuré une alerte emploi sur JobCI.<br>
+              <a href="https://jobci.vercel.app/alertes"
+                 style="color:#F97316;text-decoration:none;">Gérer mes alertes</a>
             </p>
           </td>
         </tr>
@@ -243,7 +262,7 @@ async function sendResendEmail(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "JobCI Alertes <alertes@jobci.ci>",
+        from: "onboarding@resend.dev",
         to,
         subject: `🔔 Nouvelle offre : ${job.title}`,
         html,
@@ -251,14 +270,15 @@ async function sendResendEmail(
     });
 
     if (!res.ok) {
-      console.error("Resend error:", await res.text());
+      console.error("Resend error :", await res.text());
       return false;
     }
 
-    console.log(`Email envoyé à ${to} — "${job.title}"`);
+    console.log(`✅ Email envoyé → ${to} | job_id=${job.id}`);
     return true;
+
   } catch (err) {
-    console.error("sendResendEmail error:", err);
+    console.error("sendEmail error :", err);
     return false;
   }
 }
