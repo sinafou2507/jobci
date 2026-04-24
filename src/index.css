@@ -21,4 +21,60 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  .animate-fade-up {
+    animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease both;
+  }
+  .animate-scale-in {
+    animation: scaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Point de statut (badge hero) ── */
+.animate-dot-pulse {
+  animation: dotPulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+/* ── Hero highlight "emploi idéal" ── */
+.hero-highlight {
+  color: white;
+  background-image: linear-gradient(90deg, #F97316, #F97316);
+  background-repeat: no-repeat;
+  background-position: 0 calc(100% + 6px);
+  background-size: 0% 3px;
+  padding-bottom: 6px;
+  animation:
+    heroColor     0.55s ease           forwards 0.58s,
+    heroUnderline 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards 1.0s;
+}
+
+@keyframes heroColor {
+  to { color: #F97316; }
+}
+
+@keyframes heroUnderline {
+  to { background-size: 100% 3px; }
 }

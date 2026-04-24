@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
+import { useFavorites } from "../hooks/useFavorites";
 import ApplyModal from "../components/ApplyModal";
+import GuestFavoriteModal from "../components/GuestFavoriteModal";
 
 const CONTRACT_COLORS = {
   CDI:        "bg-emerald-100 text-emerald-800",
@@ -14,9 +17,13 @@ const CONTRACT_COLORS = {
 export default function JobDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [job, setJob]           = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [showModal, setModal]   = useState(false);
+  const { user } = useAuth();
+  const { favIds, toggle } = useFavorites();
+  const [job, setJob]               = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [showModal, setModal]       = useState(false);
+  const [showGuestModal, setGuestModal] = useState(false);
+  const [favAnimating, setFavAnimating] = useState(false);
 
   useEffect(() => {
     async function fetchJob() {
@@ -37,6 +44,21 @@ export default function JobDetail() {
     }
     fetchJob();
   }, [id, navigate]);
+
+  const favored = job ? favIds.has(job.id) : false;
+
+  const handleFavorite = async () => {
+    if (!user) { setGuestModal(true); return; }
+    setFavAnimating(true);
+    await toggle(job.id);
+    setTimeout(() => setFavAnimating(false), 300);
+  };
+
+  const handleApplyClick = async () => {
+    if (user && job) {
+      supabase.from("job_views").insert({ user_id: user.id, job_id: job.id }).then(() => {});
+    }
+  };
 
   if (loading) {
     return (
@@ -70,7 +92,7 @@ export default function JobDetail() {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-navy-700
+          className="animate-fade-in inline-flex items-center gap-2 text-sm text-gray-500 hover:text-navy-700
                      transition-colors mb-6"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -80,7 +102,7 @@ export default function JobDetail() {
         </Link>
 
         {/* Carte principale */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+        <div className="animate-fade-up bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
           <div className="flex items-start gap-5">
             <div className="w-16 h-16 rounded-2xl bg-navy-50 flex items-center justify-center
                             flex-shrink-0 border border-gray-100 overflow-hidden">
@@ -97,24 +119,42 @@ export default function JobDetail() {
               <h1 className="text-2xl font-bold text-gray-900 mt-1 leading-snug">
                 {job.title}
               </h1>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {job.contract_type && (
-                  <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${contractCls}`}>
-                    {job.contract_type}
-                  </span>
-                )}
-                {job.experience_level && (
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">
-                    {job.experience_level}
-                  </span>
-                )}
-                {job.sector && (
-                  <span className="text-xs bg-navy-50 text-navy-700 px-2.5 py-0.5 rounded-full">
-                    {job.sector}
-                  </span>
-                )}
-              </div>
             </div>
+            {/* Bouton favori */}
+            <button
+              onClick={handleFavorite}
+              title={favored ? "Retirer des favoris" : "Sauvegarder l'offre"}
+              className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl
+                          border-2 transition-all duration-200
+                          ${favored
+                            ? "border-orange-400 bg-orange-50 text-orange-500"
+                            : "border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-400 hover:bg-orange-50"}
+                          ${favAnimating ? "scale-125" : "scale-100"}`}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24"
+                fill={favored ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-4">
+            {job.contract_type && (
+              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${contractCls}`}>
+                {job.contract_type}
+              </span>
+            )}
+            {job.experience_level && (
+              <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">
+                {job.experience_level}
+              </span>
+            )}
+            {job.sector && (
+              <span className="text-xs bg-navy-50 text-navy-700 px-2.5 py-0.5 rounded-full">
+                {job.sector}
+              </span>
+            )}
           </div>
 
           {/* Infos clés */}
@@ -155,9 +195,10 @@ export default function JobDetail() {
                 href={applyTarget}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={handleApplyClick}
                 className="flex items-center justify-center gap-2 w-full bg-orange-500
-                           hover:bg-orange-600 text-white font-semibold py-3.5 rounded-xl
-                           transition-colors"
+                           hover:bg-orange-600 active:scale-95 text-white font-semibold py-3.5 rounded-xl
+                           transition-all duration-150"
               >
                 {sourceSite ? `Postuler sur ${sourceSite}` : "Postuler maintenant"}
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

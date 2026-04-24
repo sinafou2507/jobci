@@ -147,6 +147,14 @@ SECTOR_KW = {
     "énergie": "Énergie & Mines", "mine": "Énergie & Mines",
     "pétrole": "Énergie & Mines", "offshore": "Énergie & Mines",
     "électrotechni": "Énergie & Mines", "rov": "Énergie & Mines",
+    "secrétaire": "Secrétariat & Administration", "secretaire": "Secrétariat & Administration",
+    "assistante de direction": "Secrétariat & Administration",
+    "assistant de direction": "Secrétariat & Administration",
+    "administratif": "Secrétariat & Administration", "administrative": "Secrétariat & Administration",
+    "archiviste": "Secrétariat & Administration",
+    "ong": "ONG & International", "ngo": "ONG & International",
+    "humanitaire": "ONG & International", "coordinat": "ONG & International",
+    "coopération": "ONG & International",
 }
 
 

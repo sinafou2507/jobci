@@ -1,3 +1,4 @@
+
 const key = (userId) => `jobci_favorites_${userId ?? "guest"}`;
 
 export function getFavoriteIds(userId) {

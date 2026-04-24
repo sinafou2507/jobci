@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
-import { getFavoriteIds } from "../lib/favorites";
+import { useFavorites } from "../hooks/useFavorites";
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
@@ -16,7 +16,8 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const favoritesCount = getFavoriteIds(user?.id).length;
+  const { favIds } = useFavorites();
+  const favoritesCount = favIds.size;
 
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })

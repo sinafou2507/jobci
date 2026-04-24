@@ -35,7 +35,10 @@ const CONTRATS = ["Tous", "CDI", "CDD", "Stage", "Freelance", "Alternance"];
 const SECTEURS = [
   "Tous", "Informatique", "Finance & Banque", "BTP & Immobilier",
   "Télécommunications", "Marketing", "Santé", "Éducation",
-  "Commerce & Distribution", "Transport & Logistique", "Autre",
+  "Commerce & Distribution", "Transport & Logistique",
+  "Agriculture & Agro-industrie", "Industrie & Production",
+  "Hôtellerie & Restauration", "Ressources Humaines", "Juridique",
+  "Énergie & Mines", "Secrétariat & Administration", "ONG & International", "Autre",
 ];
 
 const CONTRACT_COLORS = {
@@ -259,6 +262,7 @@ export default function HomePage() {
             {[
               { label: "emploi.ci", icon: "🔗" },
               { label: "goafricaonline.com", icon: "🔗" },
+              { label: "educarriere.ci", icon: "🔗" },
               { label: "Mis à jour quotidiennement", icon: "🔄" },
             ].map(({ label, icon }) => (
               <div key={label} className="flex items-center gap-1.5 text-navy-300 text-xs">
@@ -341,7 +345,7 @@ export default function HomePage() {
                 </svg>
                 Secteur
               </h2>
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 max-h-72 overflow-y-auto pr-1">
                 {SECTEURS.map(s => (
                   <button
                     key={s}

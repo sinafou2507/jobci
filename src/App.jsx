@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
+import { FavoritesProvider } from "./hooks/useFavorites";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -19,6 +20,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <FavoritesProvider>
         <div className="min-h-screen flex flex-col">
         <Navbar />
         <div className="flex-1">
@@ -62,6 +64,7 @@ export default function App() {
         </div>
         <Footer />
         </div>
+        </FavoritesProvider>
       </AuthProvider>
     </BrowserRouter>
   );
