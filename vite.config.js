@@ -35,13 +35,42 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        navigateFallback: "index.html",
         runtimeCaching: [
           {
+            // Listes d'offres — affiche le cache immédiatement, met à jour en arrière-plan
+            urlPattern: ({ url }) =>
+              url.hostname.includes("supabase") && url.pathname.includes("/rest/v1/jobs"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "jobs-cache",
+              expiration: { maxEntries: 300, maxAgeSeconds: 86400 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Auth Supabase — toujours réseau
+            urlPattern: ({ url }) =>
+              url.hostname.includes("supabase") && url.pathname.includes("/auth/"),
+            handler: "NetworkOnly",
+          },
+          {
+            // Autres appels Supabase (favoris, etc.)
             urlPattern: ({ url }) => url.hostname.includes("supabase"),
             handler: "NetworkFirst",
             options: {
-              cacheName: "supabase-api",
-              expiration: { maxEntries: 100, maxAgeSeconds: 300 },
+              cacheName: "supabase-misc",
+              expiration: { maxEntries: 100, maxAgeSeconds: 3600 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Logos entreprises
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images-cache",
+              expiration: { maxEntries: 200, maxAgeSeconds: 604800 },
             },
           },
         ],
