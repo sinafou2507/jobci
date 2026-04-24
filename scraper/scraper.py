@@ -73,6 +73,31 @@ COMMUNES = [
 COMMUNES_NORM = {c.lower().replace("-", " "): c for c in COMMUNES}
 COMMUNES_NORM.update({"port bouet": "Port-Bouët", "attecoube": "Attécoubé"})
 
+# Villes de Côte d'Ivoire (hors communes d'Abidjan)
+CI_CITIES = [
+    "Abidjan", "Bouaké", "Yamoussoukro", "San-Pédro", "San Pedro",
+    "Daloa", "Korhogo", "Man", "Gagnoa", "Aboisso", "Divo", "Soubré",
+    "Agboville", "Dimbokro", "Touba", "Odienné", "Boundiali",
+    "Ferkessédougou", "Ferké", "Katiola", "Séguéla", "Mankono",
+    "Issia", "Lakota", "Guiglo", "Sassandra", "Grand-Bassam",
+    "Tiassalé", "Dabou", "Jacqueville", "Grand-Lahou", "Adzopé",
+    "Akoupé", "Abengourou", "Bondoukou", "Bouna", "Tanda",
+    "Toumodi", "Daoukro", "Bongouanou", "Sikensi", "Alepe",
+    "Djebonoua", "Bouaflé", "Vavoua", "Zouan-Hounien", "Tabou",
+    "Méagui", "Grand-Béréby", "Bloléquin", "Duékoué", "Bangolo",
+    "Danané", "Biankouma", "Sipilou", "Zoukougbeu", "Sinfra",
+    "Oumé", "Tiébissou", "Béoumi", "Sakassou", "M'Bahiakro",
+    "Prikro", "Agnibilékrou", "Tiapoum", "Grand-Lahou",
+]
+CI_CITIES_NORM = {c.lower().replace("-", " ").replace("'", "'"): c for c in CI_CITIES}
+CI_CITIES_NORM.update({
+    "san pedro": "San-Pédro",
+    "ferke": "Ferkessédougou",
+    "ferkessedougou": "Ferkessédougou",
+    "seguela": "Séguéla",
+    "odienne": "Odienné",
+})
+
 CONTRACT_KW = {
     "cdi": "CDI", "c.d.i": "CDI",
     "cdd": "CDD", "c.d.d": "CDD", "intérim": "CDD", "interim": "CDD",
@@ -85,22 +110,43 @@ SECTOR_KW = {
     "informatique": "Informatique", "développeur": "Informatique",
     "developpeur": "Informatique", "digital": "Informatique",
     "réseau": "Informatique", "logiciel": "Informatique",
+    "data scientist": "Informatique", "fullstack": "Informatique",
+    "webmaster": "Informatique", "infographist": "Informatique",
     "banque": "Finance & Banque", "finance": "Finance & Banque",
     "comptab": "Finance & Banque", "audit": "Finance & Banque",
-    "assurance": "Finance & Banque",
+    "assurance": "Finance & Banque", "trésorerie": "Finance & Banque",
     "btp": "BTP & Immobilier", "bâtiment": "BTP & Immobilier",
     "batiment": "BTP & Immobilier", "immobilier": "BTP & Immobilier",
-    "génie civil": "BTP & Immobilier",
+    "génie civil": "BTP & Immobilier", "terrassement": "BTP & Immobilier",
+    "soudeur": "BTP & Immobilier", "électricien": "BTP & Immobilier",
     "telecom": "Télécommunications", "télécommunication": "Télécommunications",
     "marketing": "Marketing", "commercial": "Marketing",
-    "communication": "Marketing",
+    "communication": "Marketing", "community manager": "Marketing",
     "santé": "Santé", "médecin": "Santé", "pharmacie": "Santé",
-    "infirmier": "Santé",
+    "infirmier": "Santé", "médical": "Santé",
     "éducation": "Éducation", "enseignant": "Éducation", "formateur": "Éducation",
+    "scolaire": "Éducation", "pédagog": "Éducation",
     "commerce": "Commerce & Distribution", "vente": "Commerce & Distribution",
-    "distribution": "Commerce & Distribution",
+    "distribution": "Commerce & Distribution", "merchandis": "Commerce & Distribution",
     "transport": "Transport & Logistique", "logistique": "Transport & Logistique",
     "supply chain": "Transport & Logistique", "chauffeur": "Transport & Logistique",
+    "livreur": "Transport & Logistique", "coursier": "Transport & Logistique",
+    "agricol": "Agriculture & Agro-industrie", "agro": "Agriculture & Agro-industrie",
+    "agroalimentaire": "Agriculture & Agro-industrie", "agropastorale": "Agriculture & Agro-industrie",
+    "botaniste": "Agriculture & Agro-industrie", "forestier": "Agriculture & Agro-industrie",
+    "industri": "Industrie & Production", "production": "Industrie & Production",
+    "machiniste": "Industrie & Production", "opérateur": "Industrie & Production",
+    "mécanicien": "Industrie & Production", "maintenance": "Industrie & Production",
+    "hôtel": "Hôtellerie & Restauration", "restaur": "Hôtellerie & Restauration",
+    "cuisinier": "Hôtellerie & Restauration", "chef de cuisine": "Hôtellerie & Restauration",
+    "réceptionniste": "Hôtellerie & Restauration", "bagagiste": "Hôtellerie & Restauration",
+    "ressources humaines": "Ressources Humaines", "rh ": "Ressources Humaines",
+    "recrutement": "Ressources Humaines", "drh": "Ressources Humaines",
+    "juridique": "Juridique", "juriste": "Juridique", "droit": "Juridique",
+    "avocat": "Juridique", "notaire": "Juridique",
+    "énergie": "Énergie & Mines", "mine": "Énergie & Mines",
+    "pétrole": "Énergie & Mines", "offshore": "Énergie & Mines",
+    "électrotechni": "Énergie & Mines", "rov": "Énergie & Mines",
 }
 
 
@@ -151,6 +197,24 @@ def detect_commune(text: str) -> str | None:
         if key in t:
             return commune
     return None
+
+
+def detect_city(title: str, region: str = "", full_text: str = "") -> str:
+    # 1. Cherche dans le titre après le dernier tiret : "Titre - Ville"
+    if " - " in title:
+        candidate = title.rsplit(" - ", 1)[-1].strip()
+        norm = candidate.lower().replace("-", " ").replace("'", "'")
+        if norm in CI_CITIES_NORM:
+            return CI_CITIES_NORM[norm]
+
+    # 2. Cherche dans le champ région/localisation
+    for text in [region, full_text]:
+        t = text.lower().replace("-", " ").replace("'", "'")
+        for key, city in CI_CITIES_NORM.items():
+            if key in t:
+                return city
+
+    return "Abidjan"
 
 
 def detect_contract(text: str) -> str | None:
@@ -235,8 +299,7 @@ def fetch(url: str, session: requests.Session) -> BeautifulSoup | None:
     try:
         r = session.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
         r.raise_for_status()
-        r.encoding = r.apparent_encoding
-        return BeautifulSoup(r.text, "lxml")
+        return BeautifulSoup(r.content, "lxml")
     except Exception as e:
         print(f"  [err] fetch {url[:70]} → {e}")
         return None
@@ -274,11 +337,11 @@ def upsert_job(job: dict, stats: RunStats):
         print(f"  [err] upsert — {e}")
 
 
-def build_job(title, company, source_url, full_text, extra=None) -> dict:
+def build_job(title, company, source_url, full_text, extra=None, region: str = "") -> dict:
     job = {
         "title":          clean(title),
         "company_name":   clean(company) or "Non précisé",
-        "city":           "Abidjan",
+        "city":           detect_city(title or "", region, full_text),
         "commune":        detect_commune(full_text),
         "contract_type":  detect_contract(full_text),
         "sector":         detect_sector(full_text),
@@ -347,7 +410,7 @@ def _parse_emploi_card(card) -> dict | None:
     if posted_at:
         extra["created_at"] = posted_at
 
-    return build_job(title, company, source_url, full_text, extra=extra)
+    return build_job(title, company, source_url, full_text, extra=extra, region=region or "")
 
 
 def scrape_emploi_ci(max_pages: int = 5):
@@ -443,7 +506,7 @@ def _parse_goafrica_card(card) -> dict | None:
     if posted_at:
         extra["created_at"] = posted_at
 
-    return build_job(title, company, source_url, full_text, extra=extra)
+    return build_job(title, company, source_url, full_text, extra=extra, region=loc_text)
 
 
 def scrape_goafricaonline(max_pages: int = 5):
@@ -507,12 +570,112 @@ def scrape_goafricaonline(max_pages: int = 5):
     stats.log("success")
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+#  SCRAPER 3 — educarriere.ci
+#  Sélecteurs validés sur le HTML réel du 24/04/2026
+# ═══════════════════════════════════════════════════════════════════════════════
+BASE_EDUCARRIERE = "https://emploi.educarriere.ci"
+
+CONTRACT_EDUCARRIERE = {
+    "emploi": "CDI",
+    "stage": "Stage",
+    "consultance": "Freelance",
+    "alternance": "Alternance",
+    "bénévolat": "Stage",
+    "benevolat": "Stage",
+}
+
+
+def _parse_educarriere_card(card) -> dict | None:
+    title_el = card.select_one("h4.post-title > a")
+    if not title_el:
+        return None
+    title = clean(title_el.get_text())
+    if not title:
+        return None
+
+    href = title_el.get("href", "")
+    source_url = href if href.startswith("http") else urljoin(BASE_EDUCARRIERE, href)
+
+    # Société dans img[title] : "SOCIÉTÉ recrute TITRE"
+    company = None
+    img_el = card.select_one("img[title]")
+    if img_el:
+        img_title = img_el.get("title", "")
+        if " recrute " in img_title:
+            company = clean(img_title.split(" recrute ")[0])
+
+    # Type de contrat via le badge "racing"
+    contract_el = card.select_one("a.racing")
+    contract_raw = clean(contract_el.get_text()).lower() if contract_el else ""
+    contract = CONTRACT_EDUCARRIERE.get(contract_raw) or detect_contract(contract_raw) or "CDI"
+
+    # Date de publication dans span.rt-meta
+    posted_at = None
+    for li in card.select("span.rt-meta ul li"):
+        txt = li.get_text(" ", strip=True)
+        if "dition" in txt:
+            posted_at = parse_date_text(txt)
+            if posted_at:
+                break
+
+    full_text = f"{title} {company or ''} {card.get_text(' ')}"
+
+    extra = {"contract_type": contract}
+    if posted_at:
+        extra["created_at"] = posted_at
+
+    return build_job(title, company, source_url, full_text, extra=extra)
+
+
+def scrape_educarriere(max_pages: int = 5):
+    stats = RunStats(source="educarriere.ci")
+    session = requests.Session()
+    print(f"\n{'─'*58}")
+    print(f"  Scraping educarriere.ci (max {max_pages} pages)…")
+    print(f"{'─'*58}")
+
+    for page in range(1, max_pages + 1):
+        # Page 1 = /emploi/page/all, pages suivantes = /emploi/page/emploi/N
+        url = (f"{BASE_EDUCARRIERE}/emploi/page/all" if page == 1
+               else f"{BASE_EDUCARRIERE}/emploi/page/emploi/{page}")
+        soup = fetch(url, session)
+        if not soup:
+            break
+
+        cards = soup.select("div.rt-post.post-md.style-8")
+        if not cards:
+            print(f"  [educarriere] page {page} — aucune offre, arrêt.")
+            break
+
+        print(f"  [educarriere] page {page} — {len(cards)} offres")
+
+        for card in cards:
+            try:
+                job = _parse_educarriere_card(card)
+                if not job or not job.get("title"):
+                    stats.skipped += 1
+                    continue
+                upsert_job(job, stats)
+            except Exception as e:
+                stats.errors += 1
+                print(f"  [err] parse card : {e}")
+            time.sleep(DELAY)
+
+        # Continuer seulement s'il y a un lien "Suivant"
+        next_btn = soup.select_one("a[href*='/emploi/page/emploi/']")
+        if not next_btn:
+            break
+
+    stats.log("success")
+
+
 # ── CLI ────────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="JobCI Scraper")
     parser.add_argument(
         "--site",
-        choices=["emploi.ci", "goafricaonline", "all"],
+        choices=["emploi.ci", "goafricaonline", "educarriere", "all"],
         default="all",
         help="Site à scraper (défaut: all)",
     )
@@ -534,6 +697,9 @@ def main():
 
     if args.site in ("goafricaonline", "all"):
         scrape_goafricaonline(max_pages=args.pages)
+
+    if args.site in ("educarriere", "all"):
+        scrape_educarriere(max_pages=args.pages)
 
     print("\nTerminé.\n")
 
