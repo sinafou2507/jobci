@@ -64,9 +64,13 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-navy-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-navy-400 text-xs">
-            © {year} JobCI — Sinafou Maimouna Koulibaly. Tous droits réservés.
-          </p>
+          <div className="flex flex-col items-center sm:items-start gap-0.5">
+            <p className="text-navy-400 text-xs">© {year} JobCI. Tous droits réservés.</p>
+            <p className="text-navy-500 text-xs">
+              Réalisé par{" "}
+              <span className="text-orange-400 font-medium">Sinafou Maimouna Koulibaly</span>
+            </p>
+          </div>
           <div className="flex items-center gap-1 text-navy-400 text-xs">
             <span>Sources :</span>
             <span className="text-navy-300">emploi.ci</span>
