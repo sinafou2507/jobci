@@ -68,7 +68,7 @@ export default function Footer() {
             <p className="text-navy-400 text-xs">© {year} JobCI. Tous droits réservés.</p>
             <p className="text-navy-500 text-xs">
               Réalisé par{" "}
-              <span className="text-orange-400 font-medium">Sinafou Maimouna Koulibaly</span>
+              <span className="text-orange-400 font-medium">Sinafou Maimouna Koulibali</span>
             </p>
           </div>
           <div className="flex items-center gap-1 text-navy-400 text-xs">
