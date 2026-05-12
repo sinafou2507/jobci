@@ -178,14 +178,28 @@ export default function JobDetail() {
           </div>
         </div>
 
-        {/* Description */}
-        {job.description && (
+        {/* Description ou message si absente */}
+        {job.description ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4 text-gray-400">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
               Description du poste
             </h2>
             <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
               {job.description}
+            </div>
+          </div>
+        ) : applyTarget && (
+          <div className="bg-navy-50 border border-navy-100 rounded-2xl p-5 flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-navy-100 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-navy-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-navy-800 mb-0.5">Description disponible sur le site source</p>
+              <p className="text-xs text-navy-500">
+                Les détails complets de cette offre (missions, profil recherché, avantages) sont disponibles directement sur <span className="font-medium">{sourceSite}</span>.
+              </p>
             </div>
           </div>
         )}
