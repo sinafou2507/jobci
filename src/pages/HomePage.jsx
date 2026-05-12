@@ -454,37 +454,59 @@ export default function HomePage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-1.5 mt-8">
-                <button
-                  disabled={page === 1}
-                  onClick={() => setPage(p => p - 1)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium
-                             disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all text-gray-600"
-                >
-                  ← Préc.
-                </button>
-                <div className="flex gap-1">
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setPage(p)}
-                      className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all
-                        ${page === p
-                          ? "bg-navy-900 text-white shadow-sm"
-                          : "text-gray-500 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200"}`}
-                    >
-                      {p}
-                    </button>
-                  ))}
+              <div className="mt-8 flex flex-col items-center gap-3">
+                {/* Indicateur page mobile */}
+                <p className="text-xs text-gray-400 sm:hidden">
+                  Page <span className="font-semibold text-navy-700">{page}</span> sur {totalPages}
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  {/* Bouton précédent */}
+                  <button
+                    disabled={page === 1}
+                    onClick={() => { setPage(p => p - 1); jobsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm
+                               font-medium disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all text-gray-600"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    <span className="hidden sm:inline">Préc.</span>
+                  </button>
+
+                  {/* Numéros — 3 max sur mobile, 7 sur desktop */}
+                  <div className="flex gap-1">
+                    {(() => {
+                      const maxVisible = window.innerWidth < 640 ? 3 : 7;
+                      const half = Math.floor(maxVisible / 2);
+                      let start = Math.max(1, page - half);
+                      let end = Math.min(totalPages, start + maxVisible - 1);
+                      if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+                      return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+                    })().map(p => (
+                      <button
+                        key={p}
+                        onClick={() => { setPage(p); jobsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                        className={`w-9 h-9 rounded-xl text-sm font-semibold transition-all
+                          ${page === p
+                            ? "bg-navy-900 text-white shadow-sm"
+                            : "text-gray-500 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200"}`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Bouton suivant */}
+                  <button
+                    disabled={page === totalPages}
+                    onClick={() => { setPage(p => p + 1); jobsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-sm
+                               font-medium disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all text-gray-600"
+                  >
+                    <span className="hidden sm:inline">Suiv.</span>
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
                 </div>
-                <button
-                  disabled={page === totalPages}
-                  onClick={() => setPage(p => p + 1)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium
-                             disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all text-gray-600"
-                >
-                  Suiv. →
-                </button>
+              </div>
               </div>
             )}
           </div>
