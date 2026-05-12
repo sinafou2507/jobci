@@ -55,12 +55,14 @@ export default function JobCard({ job }) {
                 <img src={job.company_logo} alt={job.company_name} className="w-full h-full object-contain p-1" />
               ) : (
                 <span className="text-navy-700 font-bold text-lg">
-                  {(job.company_name ?? "?")[0].toUpperCase()}
+                  {(job.company_name && job.company_name !== "Non précisé" ? job.company_name : "?")[0].toUpperCase()}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-500 truncate">{job.company_name}</p>
+              {job.company_name && job.company_name !== "Non précisé" && (
+                <p className="text-sm text-gray-500 truncate">{job.company_name}</p>
+              )}
               <h3 className="text-base font-semibold text-gray-900 leading-tight mt-0.5
                              group-hover:text-navy-700 transition-colors line-clamp-2">
                 {job.title}

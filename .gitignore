@@ -7,3 +7,5 @@ scraper/.env
 __pycache__/
 *.pyc
 scraper/scraper.log
+.vercel
+.env*.local

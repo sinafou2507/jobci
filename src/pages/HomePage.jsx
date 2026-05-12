@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import SEO from "../components/SEO";
@@ -86,12 +86,14 @@ function JobCard({ job }) {
             <img src={job.company_logo} alt={job.company_name} className="w-full h-full object-contain p-1" />
           ) : (
             <span className="text-navy-700 font-bold text-base">
-              {(job.company_name ?? "?")[0].toUpperCase()}
+              {(job.company_name && job.company_name !== "Non précisé" ? job.company_name : "?")[0].toUpperCase()}
             </span>
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-400 truncate font-medium">{job.company_name}</p>
+          {job.company_name && job.company_name !== "Non précisé" && (
+            <p className="text-xs text-gray-400 truncate font-medium">{job.company_name}</p>
+          )}
           <h3 className="text-sm font-semibold text-gray-900 leading-snug mt-0.5
                          group-hover:text-navy-700 transition-colors line-clamp-2">
             {job.title}
@@ -160,6 +162,7 @@ export default function HomePage() {
   const [contrat, setContrat]       = useState("Tous");
   const [secteur, setSecteur]       = useState("Tous");
   const [page, setPage]             = useState(1);
+  const jobsRef = useRef(null);
 
   const PAGE_SIZE = 12;
 
@@ -197,8 +200,19 @@ export default function HomePage() {
     }
   }, [searchQuery, localisation, contrat, secteur, page]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, localisation, contrat, secteur]);
+  useEffect(() => {
+    setPage(1);
+    if (window.innerWidth < 1024) {
+      jobsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [searchQuery, localisation, contrat, secteur]);
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
+
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === "visible") fetchJobs(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchJobs]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasFilters = localisation !== "Toutes" || contrat !== "Tous" || secteur !== "Tous" || searchQuery;
@@ -384,7 +398,7 @@ export default function HomePage() {
           </aside>
 
           {/* Grille des offres */}
-          <div className="flex-1 min-w-0">
+          <div ref={jobsRef} className="flex-1 min-w-0">
             {/* Compteur */}
             <div className="flex items-center justify-between mb-5">
               <p className="text-sm font-medium text-gray-700">

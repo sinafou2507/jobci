@@ -303,11 +303,34 @@ def parse_date_text(text: str) -> str | None:
     return None
 
 
+def parse_deadline(text: str) -> datetime | None:
+    """Retourne un objet datetime si une date limite est trouvée, sinon None."""
+    if not text:
+        return None
+    t = text.lower().strip()
+    m = re.search(r"\b(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{4})\b", t)
+    if m:
+        try:
+            return datetime(int(m.group(3)), int(m.group(2)), int(m.group(1)), tzinfo=timezone.utc)
+        except ValueError:
+            pass
+    m = re.search(r"\b(\d{1,2})\s+([a-zéèêàûùôî]+)\.?\s+(\d{4})\b", t)
+    if m:
+        month_num = MONTHS_FR.get(m.group(2).rstrip("."))
+        if month_num:
+            try:
+                return datetime(int(m.group(3)), month_num, int(m.group(1)), tzinfo=timezone.utc)
+            except ValueError:
+                pass
+    return None
+
+
 def fetch(url: str, session: requests.Session) -> BeautifulSoup | None:
     try:
         r = session.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
         r.raise_for_status()
-        return BeautifulSoup(r.content, "lxml")
+        r.encoding = "utf-8"
+        return BeautifulSoup(r.text, "lxml")
     except Exception as e:
         print(f"  [err] fetch {url[:70]} → {e}")
         return None
@@ -348,7 +371,7 @@ def upsert_job(job: dict, stats: RunStats):
 def build_job(title, company, source_url, full_text, extra=None, region: str = "") -> dict:
     job = {
         "title":          clean(title),
-        "company_name":   clean(company) or "Non précisé",
+        "company_name":   clean(company) or None,
         "city":           detect_city(title or "", region, full_text),
         "commune":        detect_commune(full_text),
         "contract_type":  detect_contract(full_text),
@@ -386,6 +409,7 @@ def _parse_emploi_card(card) -> dict | None:
 
     # Données structurées dans les <li>
     contract = experience = region = None
+    deadline_dt = None
     for li in card.select("ul li"):
         txt = li.get_text(" ", strip=True)
         strong = li.select_one("strong")
@@ -393,12 +417,13 @@ def _parse_emploi_card(card) -> dict | None:
         if not val:
             continue
         if "Contrat" in txt:
-            # "CDI & Freelance" → on garde le premier mot-clé reconnu
             contract = detect_contract(val) or val.split("&")[0].strip()
         elif "xpérience" in txt:
             experience = val
         elif "égion" in txt or "ocalisa" in txt:
             region = val
+        elif "limite" in txt.lower() or "expir" in txt.lower() or "clôture" in txt.lower():
+            deadline_dt = parse_deadline(txt)
 
     full_text = f"{title} {company or ''} {region or ''} {card.get_text(' ')}"
 
@@ -410,10 +435,14 @@ def _parse_emploi_card(card) -> dict | None:
         if posted_at:
             break
 
+    now = datetime.now(timezone.utc)
+    is_active = not (deadline_dt and deadline_dt < now)
+
     extra = {
         "contract_type":    contract or detect_contract(full_text),
         "experience_level": experience,
         "commune":          detect_commune(region or full_text),
+        "is_active":        is_active,
     }
     if posted_at:
         extra["created_at"] = posted_at
@@ -618,18 +647,22 @@ def _parse_educarriere_card(card) -> dict | None:
     contract_raw = clean(contract_el.get_text()).lower() if contract_el else ""
     contract = CONTRACT_EDUCARRIERE.get(contract_raw) or detect_contract(contract_raw) or "CDI"
 
-    # Date de publication dans span.rt-meta
+    # Date de publication et date limite dans span.rt-meta
     posted_at = None
+    deadline_dt = None
     for li in card.select("span.rt-meta ul li"):
         txt = li.get_text(" ", strip=True)
         if "dition" in txt:
             posted_at = parse_date_text(txt)
-            if posted_at:
-                break
+        elif "limite" in txt.lower():
+            deadline_dt = parse_deadline(txt)
+
+    now = datetime.now(timezone.utc)
+    is_active = not (deadline_dt and deadline_dt < now)
 
     full_text = f"{title} {company or ''} {card.get_text(' ')}"
 
-    extra = {"contract_type": contract}
+    extra = {"contract_type": contract, "is_active": is_active}
     if posted_at:
         extra["created_at"] = posted_at
 
