@@ -84,10 +84,14 @@ function JobCard({ job }) {
                         flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden">
           {job.company_logo ? (
             <img src={job.company_logo} alt={job.company_name} className="w-full h-full object-contain p-1" />
-          ) : (
+          ) : job.company_name && job.company_name !== "Non précisé" ? (
             <span className="text-navy-700 font-bold text-base">
-              {(job.company_name && job.company_name !== "Non précisé" ? job.company_name : "?")[0].toUpperCase()}
+              {job.company_name[0].toUpperCase()}
             </span>
+          ) : (
+            <svg className="w-5 h-5 text-navy-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15l.75 9H3.75L4.5 3zM9 21V12h6v9" />
+            </svg>
           )}
         </div>
         <div className="flex-1 min-w-0">
