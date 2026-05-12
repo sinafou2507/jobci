@@ -115,23 +115,14 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile — avatar (si connecté) + burger */}
-          <div className="flex md:hidden items-center gap-3">
-            {!loading && user && (
+          {/* Mobile — avatar uniquement (nav bas d'écran) */}
+          {!loading && user && (
+            <div className="flex md:hidden items-center">
               <span className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                 {initials}
               </span>
-            )}
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="w-9 h-9 flex flex-col items-center justify-center gap-1.5 rounded-lg hover:bg-navy-800 transition-colors"
-              aria-label="Menu"
-            >
-              <span className="w-5 h-0.5 bg-white rounded-full" />
-              <span className="w-5 h-0.5 bg-white rounded-full" />
-              <span className="w-5 h-0.5 bg-white rounded-full" />
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </nav>
 

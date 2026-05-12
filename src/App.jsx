@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { FavoritesProvider } from "./hooks/useFavorites";
 import Navbar from "./components/Navbar";
+import BottomNav from "./components/BottomNav";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RecruiterRoute from "./components/RecruiterRoute";
@@ -24,7 +25,7 @@ export default function App() {
         <FavoritesProvider>
         <div className="min-h-screen flex flex-col">
         <Navbar />
-        <div className="flex-1">
+        <div className="flex-1 pb-16 md:pb-0">
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/offres/:id" element={<JobDetail />} />
@@ -72,6 +73,7 @@ export default function App() {
         </Routes>
         </div>
         <Footer />
+        <BottomNav />
         </div>
         </FavoritesProvider>
       </AuthProvider>
