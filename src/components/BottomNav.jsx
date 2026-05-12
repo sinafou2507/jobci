@@ -138,6 +138,7 @@ export default function BottomNav() {
             <Link
               key={to}
               to={to}
+              onClick={() => { window.scrollTo(0, 0); document.documentElement.scrollTop = 0; }}
               className="flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-colors"
             >
               {highlight ? (
