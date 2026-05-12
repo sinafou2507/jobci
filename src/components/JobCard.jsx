@@ -49,8 +49,10 @@ export default function JobCard({ job }) {
                      transition-all duration-200"
         >
           <div className="flex items-start gap-4 pr-8">
-            <div className="w-12 h-12 rounded-xl bg-navy-50 flex items-center justify-center
-                            flex-shrink-0 border border-gray-100 overflow-hidden">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border border-gray-100 overflow-hidden"
+                 style={!(job.company_logo || (job.company_name && job.company_name !== "Non précisé"))
+                   ? { background: "linear-gradient(135deg, #e8edf7 0%, #c8d3ee 100%)" }
+                   : { background: "linear-gradient(135deg, #eef1fb 0%, #dce3f5 100%)" }}>
               {job.company_logo ? (
                 <img src={job.company_logo} alt={job.company_name} className="w-full h-full object-contain p-1" />
               ) : job.company_name && job.company_name !== "Non précisé" ? (
@@ -58,8 +60,10 @@ export default function JobCard({ job }) {
                   {job.company_name[0].toUpperCase()}
                 </span>
               ) : (
-                <svg className="w-5 h-5 text-navy-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15l.75 9H3.75L4.5 3zM9 21V12h6v9" />
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#8fa3cc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                  <line x1="12" y1="12" x2="12" y2="12.01"/>
                 </svg>
               )}
             </div>
