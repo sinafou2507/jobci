@@ -3,6 +3,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import { FavoritesProvider } from "./hooks/useFavorites";
 import Navbar from "./components/Navbar";
 import BottomNav from "./components/BottomNav";
+import ScrollToTop from "./components/ScrollToTop";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RecruiterRoute from "./components/RecruiterRoute";
@@ -24,6 +25,7 @@ export default function App() {
       <AuthProvider>
         <FavoritesProvider>
         <div className="min-h-screen flex flex-col">
+        <ScrollToTop />
         <Navbar />
         <div className="flex-1 pb-16 md:pb-0">
         <Routes>
